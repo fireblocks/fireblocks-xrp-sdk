@@ -186,7 +186,8 @@ export class TokenService {
       throw new ValidationError("InvalidHolder", `Invalid address: ${address}`);
     }
 
-    validateAmount("LimitAmount", limitAmount);
+    // Allow zero values for TrustSet (required to delete trustlines)
+    validateAmount("LimitAmount", limitAmount, true);
 
     // Validate qualityIn / qualityOut if provided
     if (qualityIn !== undefined || qualityOut !== undefined) {
