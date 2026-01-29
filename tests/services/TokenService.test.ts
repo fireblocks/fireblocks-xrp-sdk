@@ -299,6 +299,31 @@ describe("TokenService", () => {
         )
       ).toThrow(ValidationError);
     });
+
+    it("allows zero value limitAmount for TrustSet (to delete trustline)", () => {
+      mockIsValidAddress.mockReturnValue(true);
+      mockValidateAmount.mockReturnValue(undefined);
+      const zeroLimitAmount = {
+        currency: "USD",
+        issuer: "rIssuer",
+        value: "0",
+      };
+      const tx = service.createTrustSetTx(
+        baseArgs.address,
+        baseArgs.fee,
+        baseArgs.sequence,
+        zeroLimitAmount,
+        baseArgs.lastLedgerSequence
+      );
+      expect(tx.TransactionType).toBe("TrustSet");
+      expect(tx.LimitAmount).toEqual(zeroLimitAmount);
+      // Verify validateAmount was called with allowZero=true (third parameter)
+      expect(mockValidateAmount).toHaveBeenCalledWith(
+        "LimitAmount",
+        zeroLimitAmount,
+        true
+      );
+    });
   });
 
   // ---- createAccountSetTx ----
