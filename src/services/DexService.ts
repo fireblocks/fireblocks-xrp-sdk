@@ -4,6 +4,7 @@ import {
   Memo,
   OfferCancel,
   Payment,
+  PaymentFlags,
   Path,
   CredentialCreate,
   isValidAddress,
@@ -125,6 +126,7 @@ export class DexService {
    * @param sequence - The account sequence number
    * @param lastLedgerSequence - The last ledger sequence where this transaction is valid
    * @param sendMax - The maximum amount to send (for partial payments)
+   * @param deliverMin - Optional minimum amount to deliver (requires tfPartialPayment when used)
    * @param paths - Optional payment paths to use
    * @param flags - Optional flags for the Payment transaction
    * @param memos - Optional memos to attach to the transaction
@@ -141,6 +143,7 @@ export class DexService {
     sequence: number,
     lastLedgerSequence: number,
     sendMax?: Amount,
+    deliverMin?: Amount,
     paths?: Path[],
     flags?: IPaymentFlags,
     memos?: Memo[],
@@ -148,6 +151,8 @@ export class DexService {
     invoiceId?: string
   ): Payment => {
     try {
+      const { tfPartialPayment } = PaymentFlags;
+
       // Validate destination address
       if (!destination || typeof destination !== "string") {
         throw new ValidationError(
@@ -160,6 +165,9 @@ export class DexService {
       validateAmount("amount", amount);
       if (sendMax) {
         validateAmount("sendMax", sendMax);
+      }
+      if (deliverMin !== undefined) {
+        validateAmount("deliverMin", deliverMin);
       }
 
       // Validate destinationTag if provided
@@ -198,6 +206,18 @@ export class DexService {
         );
       }
 
+      // Ensure partial flag when using SendMax or DeliverMin
+      const wantsPartial = Boolean((combinedFlags ?? 0) & tfPartialPayment);
+      if (
+        !wantsPartial &&
+        (sendMax !== undefined || deliverMin !== undefined)
+      ) {
+        throw new ValidationError(
+          "InvalidFlags",
+          "SendMax or DeliverMin requires the tfPartialPayment flag."
+        );
+      }
+
       // Build and return transaction
       const tx: Payment = {
         TransactionType: "Payment",
@@ -208,6 +228,7 @@ export class DexService {
         Sequence: sequence,
         LastLedgerSequence: lastLedgerSequence,
         ...(sendMax !== undefined && { SendMax: sendMax }),
+        ...(deliverMin !== undefined && { DeliverMin: deliverMin }),
         ...(paths?.length ? { Paths: paths } : {}),
         ...(combinedFlags !== undefined && { Flags: combinedFlags }),
         ...(validatedMemos && validatedMemos.length > 0
