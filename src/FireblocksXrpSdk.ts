@@ -183,6 +183,7 @@ export class FireblocksXrpSdk extends Wallet {
    * @param destination - destination address
    * @param amount - Amount to send
    * @param sendMax - Amount to send max
+   * @param deliverMin - optional, minimum amount to deliver (requires tfPartialPayment when used with sendMax)
    * @param flags - optional, flags for the transaction (common transaction flags)
    * @param invoiceId - optional, invoice ID for the transaction
    * @param destinationTag - optional, destination tag for the transaction
@@ -195,6 +196,7 @@ export class FireblocksXrpSdk extends Wallet {
     destination,
     amount,
     sendMax,
+    deliverMin,
     flags,
     invoiceId,
     destinationTag,
@@ -214,6 +216,7 @@ export class FireblocksXrpSdk extends Wallet {
         sequence,
         lastLedgerSequence,
         sendMax,
+        deliverMin,
         paths,
         flags,
         memos,

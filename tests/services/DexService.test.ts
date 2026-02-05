@@ -206,6 +206,7 @@ describe("DexService", () => {
       sequence: 1,
       lastLedgerSequence: 10,
       sendMax: { currency: "USD", issuer: "rIssuer", value: "150" } as Amount,
+      deliverMin: { currency: "EUR", issuer: "rIssuer2", value: "90" } as Amount,
       paths: [
         [{ account: "rSomeAccount", currency: "USD", issuer: "rIssuer" }],
       ] as Path[],
@@ -228,6 +229,7 @@ describe("DexService", () => {
         baseArgs.sequence,
         baseArgs.lastLedgerSequence,
         baseArgs.sendMax,
+        baseArgs.deliverMin,
         baseArgs.paths,
         baseArgs.flags,
         baseArgs.memos,
@@ -236,11 +238,67 @@ describe("DexService", () => {
       );
       expect(tx.TransactionType).toBe("Payment");
       expect(tx.SendMax).toEqual(baseArgs.sendMax);
+      expect(tx.DeliverMin).toEqual(baseArgs.deliverMin);
       expect(tx.Paths).toEqual(baseArgs.paths);
       expect(tx.Flags).toBe(0x00020000);
       expect(tx.Memos).toEqual(baseArgs.memos);
       expect(tx.DestinationTag).toBe(baseArgs.destinationTag);
       expect(tx.InvoiceID).toBe(baseArgs.invoiceId);
+    });
+
+    it("includes DeliverMin when deliverMin is provided", () => {
+      mockValidateAmount.mockReturnValue(undefined);
+      mockDerivePaymentFlags.mockReturnValue(0x00020000);
+
+      const tx = service.getCrossCurrencyPaymentUnsignedTx(
+        baseArgs.address,
+        baseArgs.destination,
+        baseArgs.amount,
+        baseArgs.fee,
+        baseArgs.sequence,
+        baseArgs.lastLedgerSequence,
+        baseArgs.sendMax,
+        baseArgs.deliverMin,
+        baseArgs.paths,
+        baseArgs.flags,
+        baseArgs.memos,
+        baseArgs.destinationTag,
+        baseArgs.invoiceId
+      );
+      expect(tx.DeliverMin).toEqual(baseArgs.deliverMin);
+    });
+
+    it("throws ValidationError when sendMax or deliverMin used without tfPartialPayment", () => {
+      mockValidateAmount.mockReturnValue(undefined);
+      mockDerivePaymentFlags.mockReturnValue(0); // no tfPartialPayment
+
+      expect(() =>
+        service.getCrossCurrencyPaymentUnsignedTx(
+          baseArgs.address,
+          baseArgs.destination,
+          baseArgs.amount,
+          baseArgs.fee,
+          baseArgs.sequence,
+          baseArgs.lastLedgerSequence,
+          baseArgs.sendMax,
+          undefined,
+          baseArgs.paths
+        )
+      ).toThrow(new ValidationError("InvalidFlags", "SendMax or DeliverMin requires the tfPartialPayment flag."));
+
+      expect(() =>
+        service.getCrossCurrencyPaymentUnsignedTx(
+          baseArgs.address,
+          baseArgs.destination,
+          baseArgs.amount,
+          baseArgs.fee,
+          baseArgs.sequence,
+          baseArgs.lastLedgerSequence,
+          undefined,
+          { currency: "EUR", issuer: "rI", value: "50" } as Amount,
+          baseArgs.paths
+        )
+      ).toThrow(new ValidationError("InvalidFlags", "SendMax or DeliverMin requires the tfPartialPayment flag."));
     });
 
     it("omits optional fields when not provided", () => {
@@ -256,6 +314,7 @@ describe("DexService", () => {
         baseArgs.lastLedgerSequence
       );
       expect(tx.SendMax).toBeUndefined();
+      expect(tx.DeliverMin).toBeUndefined();
       expect(tx.Paths).toBeUndefined();
       expect(tx.Flags).toBeUndefined();
       expect(tx.Memos).toBeUndefined();
@@ -303,7 +362,8 @@ describe("DexService", () => {
           baseArgs.fee,
           baseArgs.sequence,
           baseArgs.lastLedgerSequence,
-          baseArgs.sendMax
+          baseArgs.sendMax,
+          undefined // deliverMin
         )
       ).toThrow(ValidationError);
     });
@@ -321,6 +381,7 @@ describe("DexService", () => {
           undefined,
           undefined,
           undefined,
+          undefined,
           -5
         )
       ).toThrow(ValidationError);
@@ -333,6 +394,7 @@ describe("DexService", () => {
           baseArgs.fee,
           baseArgs.sequence,
           baseArgs.lastLedgerSequence,
+          undefined,
           undefined,
           undefined,
           undefined,
@@ -356,6 +418,7 @@ describe("DexService", () => {
           baseArgs.fee,
           baseArgs.sequence,
           baseArgs.lastLedgerSequence,
+          undefined,
           undefined,
           undefined,
           baseArgs.flags

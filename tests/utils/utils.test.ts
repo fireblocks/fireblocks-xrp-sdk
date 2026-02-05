@@ -235,6 +235,39 @@ describe("Utils", () => {
         })
       ).toThrow(ValidationError);
       expect(() => validateAmount("Amount", "0")).toThrow(ValidationError);
+      // Zero should throw by default
+      expect(() =>
+        validateAmount("Amount", {
+          currency: "USD",
+          issuer: "rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe",
+          value: "0",
+        })
+      ).toThrow(ValidationError);
+    });
+    it("allows zero amount when allowZero is true", () => {
+      expect(() =>
+        validateAmount(
+          "Amount",
+          {
+            currency: "USD",
+            issuer: "rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe",
+            value: "0",
+          },
+          true
+        )
+      ).not.toThrow();
+      // Negative should still throw even with allowZero
+      expect(() =>
+        validateAmount(
+          "Amount",
+          {
+            currency: "USD",
+            issuer: "rPT1Sjq2YGrBMTttX4GZHjKu9dyfzbpAYe",
+            value: "-1",
+          },
+          true
+        )
+      ).toThrow(ValidationError);
     });
     it("throws ValidationError for invalid amount object", () => {
       expect(() =>

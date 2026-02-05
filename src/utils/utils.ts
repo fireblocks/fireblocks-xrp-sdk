@@ -286,9 +286,10 @@ export function validateHash256(name: string, value: string) {
  *
  * @param name - Name of the amount field (used in error messages)
  * @param amt - The amount to validate (string for XRP, object for token)
+ * @param allowZero - Optional flag to allow zero values (e.g., for TrustSet to delete trustlines)
  * @throws {ValidationError} If the amount is invalid
  */
-export const validateAmount = (name: string, amt: Amount): void => {
+export const validateAmount = (name: string, amt: Amount, allowZero: boolean = false): void => {
   // Check for null/undefined
   if (amt === null || amt === undefined) {
     throw new ValidationError(
@@ -385,11 +386,18 @@ export const validateAmount = (name: string, amt: Amount): void => {
       );
     }
 
-    // Validate value is positive
-    if (parseFloat(value) <= 0) {
+    // Validate value is positive (unless allowZero is true, which allows 0 for TrustSet deletion)
+    const valueNum = parseFloat(value);
+    if (!allowZero && valueNum <= 0) {
       throw new ValidationError(
         "InvalidAmount",
         `${name} must be a positive amount`
+      );
+    }
+    if (allowZero && valueNum < 0) {
+      throw new ValidationError(
+        "InvalidAmount",
+        `${name} cannot be negative`
       );
     }
   } else {
